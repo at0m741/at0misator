@@ -1,14 +1,16 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <time.h>
-#include <sys/ptrace.h>
-#include <sys/reg.h> /* EAX, ORIG_EAX */
-#include <sys/user.h>
-#include "stdbool.h"
-#include "debug.h"
-#include <sys/syscall.h>
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   debugger.c                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ltouzali <ltouzali@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/11/10 16:28:36 by ltouzali          #+#    #+#             */
+/*   Updated: 2023/11/10 17:32:39 by ltouzali         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
+#include "debug.h"
 
 #define MAX_SYSCALL_NUM 337
 int sigtstp_received = 0;
@@ -17,6 +19,32 @@ void sigtstp_handler(int sig) {
     sigtstp_received = 1;
 }
 
+void debug()
+{
+    pid_t child;
+    struct user_regs_struct regs;
+    ptrace( PTRACE_GETREGS, child, NULL, &regs );
+    printf("rax = 0x%016llx\n", regs.rax);
+    printf("rbx = 0x%016llx\n", regs.rbx );
+    printf("rcx = 0x%016llx\n", regs.rcx );
+    printf("rdx = 0x%016llx\n", regs.rcx );
+    printf("rbp = 0x%016llx\n", regs.rbp );
+    printf("rsp = 0x%016llx\n", regs.rsp );
+    printf("rsi = 0x%016llx\n", regs.rsi );
+    printf("rdi = 0x%016llx\n", regs.rdi );
+    printf("r8  = 0x%016llx\n", regs.r8 );
+    printf("r9  = 0x%016llx\n", regs.r9 );
+    printf("r10 = 0x%016llx\n", regs.r10 );
+    printf("r11 = 0x%016llx\n", regs.r11 );
+    printf("r12 = 0x%016llx\n", regs.r12 );
+    printf("r13 = 0x%016llx\n", regs.r13 );
+    printf("r14 = 0x%016llx\n", regs.r14 );
+    printf("r15 = 0x%016llx\n", regs.r15 );
+
+
+	printf("regs status = 0x%016llx\n", &regs);
+
+}
 
 int run_target(const char* programname)
 {
@@ -59,41 +87,77 @@ int run_debugger(pid_t child_pid)
 		int regs;
 		debug();
     	
-		return 0;
+		//return 0;
  
 	} else if (!strncmp(command, "cs", 2)) {
 	    (void) signal(SIGTSTP, sigtstp_handler);
 	} else if (!(strncmp(command, "i", 1))) {
 	    if (ptrace(PTRACE_SINGLESTEP, child_pid, 0, 0) < 0) {
 	        perror("ptrace");
-		return 1;
+		//return 1;
 	    }
 	    wait(&wait_status);
 
 	    struct user_regs_struct regs;
 	    ptrace(PTRACE_GETREGS, child_pid, 0, &regs);
 	    long instr = ptrace(PTRACE_PEEKTEXT, child_pid, regs.rip, 0);
- 	    printf("EIP = %08lx, instr = %08lx\n", regs.rip, instr);
+ 	    printf("EIP = %08llx, instr = %08llx\n", regs.rip, instr);
 	} else if (!(strncmp(command, "s", 1))) {
 	    if (ptrace(PTRACE_SYSCALL, child_pid, 0, 0) < 0) {
   	        perror("ptrace");
-		return 1;
 	    }
 	    wait(&wait_status);
 	    int syscall = ptrace(PTRACE_PEEKUSER, child_pid, sizeof(long)*ORIG_RAX);
 
 	    if (ptrace(PTRACE_SYSCALL, child_pid, 0, 0) < 0) {
   	        perror("ptrace");
-		return 1;
 	    }
 	    wait(&wait_status);
 	    int retval = ptrace(PTRACE_PEEKUSER, child_pid, sizeof(long)*RAX);
-
 	    printf("syscall(%d) = %d\n", syscall, retval);
 	} else if (!(strncmp(command, "k", 1))) {
 		kill(child_pid, SIGSTOP);
 	
-	} else {
+	} else if  (!(strncmp(command, "hx", 1))) 
+	{
+	    if (ptrace(PTRACE_SYSCALL, child_pid, 0, 0) < 0) 
+		{
+  	        perror("ptrace");
+		}
+		FILE *fptr;
+    	fptr = fopen(argv[1], "rb");
+
+    	if (fptr == NULL)
+    	{
+    	    printf("error");
+    	    return 1;
+    	}
+
+   		fseek(fptr, 0, SEEK_END);
+    	unsigned long filesize = ftell(fptr);
+    	fseek(fptr, 0, SEEK_SET);
+    
+    	unsigned char *buffer = malloc(filesize);
+    	if (buffer == NULL)
+   		{
+        	printf("Malloc error");
+        	return 1;
+    	}
+    	fread(buffer, 1, filesize, fptr);
+    	fclose(fptr);
+
+    	size_t dumpsize = atoi(argv[2]);
+    	if (dumpsize > filesize)
+    	{
+        	dumpsize = filesize;
+    	}
+    
+
+    	printHex(buffer, dumpsize);
+
+    free(buffer);
+    return 0;    
+	}else {
 	  printf("Your options are:\n");
 	  printf("  q: detach and quit\n");
 	  printf("  i: step instruction\n");
@@ -106,7 +170,7 @@ int run_debugger(pid_t child_pid)
 
 	if (WIFEXITED(wait_status)) {
 	    printf("Done!\n");
-	    return 0;
+	    //return 0;
 	}
     }
 }
@@ -128,7 +192,7 @@ int fork_and_trace(char *programname) {
 int attach_and_trace(int pid) {
     ptrace(PTRACE_ATTACH, pid, NULL, NULL);
     return run_debugger(pid);
-	if(pid = NULL){
+	if(pid == 0){
 		printf("nop");
 	}
 }

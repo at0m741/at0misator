@@ -1,28 +1,38 @@
-#include "stdio.h"
-#include "stdlib.h"
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   debug.h                                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ltouzali <ltouzali@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/11/10 16:28:41 by ltouzali          #+#    #+#             */
+/*   Updated: 2023/11/10 17:25:45 by ltouzali         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
-debug(){
-    pid_t child;
-    struct user_regs_struct regs;
-    ptrace( PTRACE_GETREGS, child, NULL, &regs );
-    printf("rax = 0x%016x\n", regs.rax);
-    printf("rbx = 0x%016x\n", regs.rbx );
-    printf("rcx = 0x%016x\n", regs.rcx );
-    printf("rdx = 0x%016x\n", regs.rcx );
-    printf("rbp = 0x%016x\n", regs.rbp );
-    printf("rsp = 0x%016x\n", regs.rsp );
-    printf("rsi = 0x%016x\n", regs.rsi );
-    printf("rdi = 0x%016x\n", regs.rdi );
-    printf("r8  = 0x%016x\n", regs.r8 );
-    printf("r9  = 0x%016x\n", regs.r9 );
-    printf("r10 = 0x%016x\n", regs.r10 );
-    printf("r11 = 0x%016x\n", regs.r11 );
-    printf("r12 = 0x%016x\n", regs.r12 );
-    printf("r13 = 0x%016x\n", regs.r13 );
-    printf("r14 = 0x%016x\n", regs.r14 );
-    printf("r15 = 0x%016x\n", regs.r15 );
+# ifndef DEBUG_H
+#define DEBUG_H
+#include <stdio.h>
+#include <stdlib.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <time.h>
+#include <sys/ptrace.h>
+#include <sys/types.h>
+#include <sys/reg.h> /* EAX, ORIG_EAX */
+#include <sys/user.h>
+#include "stdbool.h"
+#include <sys/syscall.h>
 
-printf("regs status = 0x%016x\n", &regs);
+void debug();
+void	printHex(unsigned char *data, size_t size);
+int		run_target(const char* programname);
+bool	is_symbol(char symbol);
+int		run_debugger(pid_t child_pid);
+int		fork_and_trace(char *programname);
+int		attach_and_trace(int pid);
+void	usage(char *name);
 
-}
+#endif
