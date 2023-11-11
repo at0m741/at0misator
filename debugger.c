@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   debugger.c                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ltouzali <ltouzali@student.42.fr>          +#+  +:+       +#+        */
+/*   By: at0m <at0m@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/10 16:28:36 by ltouzali          #+#    #+#             */
-/*   Updated: 2023/11/10 17:32:39 by ltouzali         ###   ########.fr       */
+/*   Updated: 2023/11/11 14:14:15 by at0m             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -124,39 +124,35 @@ int run_debugger(pid_t child_pid)
 		{
   	        perror("ptrace");
 		}
-		FILE *fptr;
-    	fptr = fopen(argv[1], "rb");
+		  char arg[20];  // Adjust the size as needed
+    	if (sscanf(command + 3, "%19s", arg) != 1) 
+		{
+     		printf("Error: Address missing for hx command.\n");
+     		continue; // Go back to the loop to wait for the next command
+		}
 
-    	if (fptr == NULL)
-    	{
-    	    printf("error");
-    	    return 1;
-    	}
-
-   		fseek(fptr, 0, SEEK_END);
-    	unsigned long filesize = ftell(fptr);
-    	fseek(fptr, 0, SEEK_SET);
+    // Convert the argument to an address
+    	unsigned long long int addr = strtoull(arg, NULL, 0);
     
-    	unsigned char *buffer = malloc(filesize);
-    	if (buffer == NULL)
-   		{
-        	printf("Malloc error");
-        	return 1;
+    // Check if the address is valid before attempting to read
+    	if (errno == ERANGE) {
+        	perror("strtoull");
+        	continue; // Go back to the loop to wait for the next command
     	}
-    	fread(buffer, 1, filesize, fptr);
-    	fclose(fptr);
 
-    	size_t dumpsize = atoi(argv[2]);
-    	if (dumpsize > filesize)
-    	{
-        	dumpsize = filesize;
+    // Attempt to read from the specified address
+    	long ret = ptrace(PTRACE_PEEKDATA, child_pid, addr, 0);
+
+    	if (ret == -1 && errno != 0) {
+        	perror("ptrace(PTRACE_PEEKDATA)");
+        	printf("Error: Failed to read from address %llx\n", addr);
+        	continue; // Go back to the loop to wait for the next command
     	}
-    
+		printf("Value at address %llx: %lx\n", addr, ret);
+    	printHex(&ret, sizeof(ret));
 
-    	printHex(buffer, dumpsize);
-
-    free(buffer);
-    return 0;    
+    //free(buffer);
+    	//return 0;    
 	}else {
 	  printf("Your options are:\n");
 	  printf("  q: detach and quit\n");
@@ -180,7 +176,7 @@ int fork_and_trace(char *programname) {
     pid_t child_pid = fork();
     if (child_pid == 0)
         return run_target(programname);
-    else if (child_pid > 0)
+    else if (child_pid >= 0)
         return run_debugger(child_pid);
     else {
         perror("fork");

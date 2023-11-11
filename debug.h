@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   debug.h                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ltouzali <ltouzali@student.42.fr>          +#+  +:+       +#+        */
+/*   By: at0m <at0m@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/10 16:28:41 by ltouzali          #+#    #+#             */
-/*   Updated: 2023/11/10 17:25:45 by ltouzali         ###   ########.fr       */
+/*   Updated: 2023/11/11 14:05:35 by at0m             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 #define DEBUG_H
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
@@ -25,6 +25,7 @@
 #include <sys/user.h>
 #include "stdbool.h"
 #include <sys/syscall.h>
+#include <errno.h>
 
 void debug();
 void	printHex(unsigned char *data, size_t size);
