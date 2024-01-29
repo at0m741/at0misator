@@ -89,7 +89,13 @@ int run_debugger(pid_t child_pid)
 		}
 		else if (!(strncmp(command, "bt", 2)))
 		{
+			printf("Backtrace:\n");
 			print_backtrace();
+		}
+		else if (!(strncmp(command, "mt", 2)))
+		{
+			printf("Memory trace:\n");
+			trace_memory(child_pid, address, length);
 		}
 		else 
 		{
@@ -101,6 +107,7 @@ int run_debugger(pid_t child_pid)
 			printf("  hx: print hexdump [addr], [length]\n");
 			printf("  re: print registers value\n");
 			printf("  bt: print backtrace\n");
+			printf("  mt: print memory trace [addr], [lenght]\n");
 		}
     }
 }

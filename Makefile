@@ -4,7 +4,8 @@ SRCS = debugger.c \
 	   hexdump.c \
 	   main.c \
 	   setup.c \
-	   run.c
+	   run.c \
+	   breakpoints.c 
 
 FLAGS = -m64 -no-pie -fno-pie -pthread -fno-asm -g
 

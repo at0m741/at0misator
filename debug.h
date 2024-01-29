@@ -6,7 +6,7 @@
 /*   By: ltouzali <ltouzali@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/10 16:28:41 by ltouzali          #+#    #+#             */
-/*   Updated: 2024/01/29 20:46:01 by ltouzali         ###   ########.fr       */
+/*   Updated: 2024/01/29 21:03:47 by ltouzali         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@
 # include <time.h>
 # include <sys/ptrace.h>
 # include <sys/types.h>
-# include <sys/reg.h> /* EAX, ORIG_EAX */
+# include <sys/reg.h> 
 # include <sys/user.h>
 # include "stdbool.h"
 # include <sys/syscall.h>
@@ -55,6 +55,9 @@ void 	print_backtrace(void);
 bool 	is_symbol(char symbol);
 void 	trace_memory(pid_t pid, int address, int length);
 
-
+long 	inspect_variable(pid_t pid, void* addr);
+void 	step(pid_t pid);
+void 	continue_execution(pid_t pid);
+void 	breakpoint(pid_t pid, void* addr);
 
 #endif
