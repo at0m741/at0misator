@@ -1,17 +1,17 @@
 # Project Info
 
-PROJECT_NAME =supermath
+PROJECT_NAME =at0misator
 
-IS_LIBRARY=true
+IS_LIBRARY=false
 NO_PIE=false
-CANARY=false
+CANARY=true
 STDLIB=true
-FORTIFY=0
+FORTIFY=1
 EXECSTACK=0
 
-AUTHOR=Unam3dd
-GITHUB=https://github.com/Unam3dd
-VERSION=0.0.1
+AUTHOR=at0m741, Unam3dd
+GITHUB=https://github.com/at0m741
+VERSION=0.0.2
 
 
 # Shell Information
