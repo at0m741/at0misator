@@ -5,7 +5,7 @@ include mk/bar.mk
 include mk/checker.mk
 
 .SILENT:
-all: BANNER BANNER_MAIN
+all: BANNER BANNER_MAIN build
 
 build: BANNER BANNER_MAIN $(OBJDIR) $(OBJS) $(NAME) $(STATIC_NAME)
 
