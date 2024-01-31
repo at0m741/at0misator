@@ -16,7 +16,7 @@ VERSION=0.0.2
 
 # Shell Information
 
-SHELL := /bin/zsh
+#SHELL := /bin/zsh
 
 # System information
 
