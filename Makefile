@@ -7,17 +7,17 @@ SRCS = debugger.c \
 	   run.c \
 	   breakpoints.c 
 
-FLAGS = -m64 -no-pie -fno-pie -pthread -fno-asm -g
+FLAGS = -m64 -no-pie -fno-pie -pthread -fno-asm -g  -llzma -fPIE
 
 OBJS = $(SRCS:.c=.o)
 
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	$(CC) $(FLAGS) $(OBJS) -o $(NAME)
+	$(CC) $(OBJS) -o $(NAME)  -m64 -no-pie -fno-pie -pthread -fno-asm -g  -llzma
 
 %.o: %.c
-	$(CC) $(FLAGS) -c $< -o $@
+	$(CC) -m64 -no-pie -fno-pie -pthread -fno-asm -g -c $< -o $@
 
 clean:
 	rm -f $(OBJS)
@@ -28,6 +28,6 @@ fclean: clean
 re: fclean all
 
 debug: $(OBJS)
-	$(CC) $(FLAGS) $(OBJS) -o $(NAME) -g
+	$(CC) $(OBJS) -o $(NAME) -m64 -no-pie -fno-pie -pthread -fno-asm -g  -llzma -g
 
 .PHONY: all clean fclean re debug

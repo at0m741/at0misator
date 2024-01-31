@@ -7,9 +7,9 @@ int run_debugger(pid_t child_pid)
 	int address;
 	int length;
     printf("Starting debugger.\n");
-    
-    wait(&wait_status);
-	prctl(PR_SET_KEEPCAPS, 1);
+    progname(child_pid);
+    /* wait(&wait_status);
+	prctl(PR_SET_KEEPCAPS, 1); */
 
     while (1) 
 	{
@@ -65,37 +65,37 @@ int run_debugger(pid_t child_pid)
 		{
 			if (ptrace(PTRACE_SYSCALL, child_pid, 0, 0) < 0) 
 				perror("ptrace");
-			char arg[20];
+			char arg[200];
 			if (sscanf(command + 3, "%19s", arg) != 1) 
 			{
 				printf("Error: Address missing for hx command.\n");
 				continue; 
 			}
 			unsigned long long int addr = strtoull(arg, NULL, 0);
-			if (errno == ERANGE) 
+			long ret = ptrace(PTRACE_PEEKDATA, child_pid, addr, 0);
+			/* if (errno == ERANGE) 
 			{
 				perror("strtoull");
 				continue;
 			}
-			long ret = ptrace(PTRACE_PEEKDATA, child_pid, addr, 0);
 			if (ret == -1 && errno != 0) 
 			{
 				perror("ptrace(PTRACE_PEEKDATA)");
 				printf("Error: Failed to read from address %llx\n", addr);
 				continue;
-			}
+			} */
 			printf("Value at address %llx: %lx\n", addr, ret);
-			printHex((char *)&ret, sizeof(ret) * sizeof(char));  
+			printHex((char *)&ret, 150);  
 		}
 		else if (!(strncmp(command, "bt", 2)))
 		{
 			printf("Backtrace:\n");
-			print_backtrace();
+			print_backtrace(child_pid);
 		}
 		else if (!(strncmp(command, "mt", 2)))
 		{
 			printf("Memory trace:\n");
-			trace_memory(child_pid, address, length);
+			trace_memory(child_pid, address + 10, 100);
 		}
 		else 
 		{

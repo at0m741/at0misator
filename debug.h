@@ -32,9 +32,20 @@
 # include <sys/prctl.h>
 # include <linux/seccomp.h>
 # include <sys/prctl.h>
+# include <libunwind.h>
+#include <libunwind-ptrace.h>
+#include <linux/seccomp.h>
+#include <linux/filter.h>
+#include <sys/prctl.h>
+#include <linux/seccomp.h>
+#include <linux/filter.h>
+#include <sys/prctl.h>
+#include <sys/capability.h>
+#include <stddef.h>
 
 //# include <sys/capability.h>
 
+#define UNW_LOCAL_ONLY
 #define MAX_SYSCALL_NUM 337
 
 void	sigtstp_handler(int sig);
@@ -51,13 +62,13 @@ void	usage(char *name);
 void 	setup_seccomp();
 int 	is_process_running(pid_t pid);
 int 	run_debugger(pid_t child_pid);
-void 	print_backtrace(void);
+void    print_backtrace(pid_t pid);
 bool 	is_symbol(char symbol);
-void 	trace_memory(pid_t pid, int address, int length);
+void    trace_memory(pid_t pid, unsigned long address, int length);
 
 long 	inspect_variable(pid_t pid, void* addr);
 void 	step(pid_t pid);
 void 	continue_execution(pid_t pid);
 void 	breakpoint(pid_t pid, void* addr);
-
+void    progname(pid_t pid);
 #endif

@@ -51,34 +51,71 @@ bool is_symbol(char symbol)
 		return false;
 }
 
-void print_backtrace(void) 
-{
-    void *buffer[256];
-    int nptrs = backtrace(buffer, 256);
-    char **strings = backtrace_symbols(buffer, nptrs);
-    if (strings == NULL) 
-	{
-        perror("backtrace_symbols");
-        exit(EXIT_FAILURE);
-    }
-    for (int j = 0; j < nptrs; j++)
-        printf("%s\n", strings[j]);
 
-    free(strings);
+
+void print_backtrace(pid_t child_pid) {
+    struct user_regs_struct regs;
+    if (ptrace(PTRACE_GETREGS, child_pid, NULL, &regs) < 0) {
+        perror("ptrace(PTRACE_GETREGS)");
+        return;
+    }
+
+    printf("Child process stopped at IP = 0x%llx\n", regs.rip);
+
+    // Print the stack trace.
+    for (int i = 0; i < 16; i++) {
+        long stack_data = ptrace(PTRACE_PEEKDATA, child_pid, regs.rsp + i * 8, NULL);
+        if (stack_data == -1 && errno != 0) {
+            perror("ptrace(PTRACE_PEEKDATA)");
+            break;
+        }
+        printf("Stack[%02d] = 0x%lx\n", i, stack_data);
+    }
 }
 
-void trace_memory(pid_t pid, int address, int length) 
+void trace_memory(pid_t pid, unsigned long address, int length) 
 {
-	unsigned char *data = malloc(length);
-	unsigned char *bytes = data;
-	int i = 0;
-	while (i < length) 
-	{
-		long word = ptrace(PTRACE_PEEKDATA, pid, address + i, NULL);
-		memcpy(bytes, &word, sizeof(word));
-		bytes += sizeof(word);
-		i += sizeof(word);
-	}
-	printHex(data, length);
-	free(data);
+    unsigned char *data = malloc(length);
+    unsigned char *bytes = data;
+    int i = 0;
+    while (i < length) 
+    {
+        long word = ptrace(PTRACE_PEEKDATA, pid, address + i, NULL);
+        memcpy(bytes, &word, sizeof(word));
+        bytes += sizeof(word);
+        i += sizeof(word);
+    }
+
+    printf("Memory dump at address 0x%lx:\n", address);
+    printHex(data, length);
+    free(data);
+
+    // Print the current memory used by the child process.
+    char statm_path[256];
+    snprintf(statm_path, sizeof(statm_path), "/proc/%d/statm", pid);
+    FILE *statm_file = fopen(statm_path, "r");
+    if (statm_file == NULL) {
+        perror("fopen");
+        return;
+    }
+    unsigned long size, resident, share, text, lib, data1, dt;
+    if (fscanf(statm_file, "%lu %lu %lu %lu %lu %lu %lu",
+               &size, &resident, &share, &text, &lib, &data1, &dt) != 7) {
+        perror("fscanf");
+        fclose(statm_file);
+        return;
+    }
+    fclose(statm_file);
+    printf("Current memory used by child process: %lu pages\n", resident);
+}
+
+void progname(pid_t pid)
+{
+    char path[1024];
+    char *name;
+    sprintf(path, "/proc/%d/exe", pid);
+    name = malloc(1024);
+    readlink(path, name, 1024);
+    printf("traced program name: %s\n", name);
+    free(name);
 }

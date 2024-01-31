@@ -45,8 +45,10 @@ void trace_process(pid_t pid)
     }
 
     printf("Attached to process %d\n", pid);
-
+    attach_and_trace(pid);
     while (WIFSTOPPED(status)) {
+        printf("debug");
+        run_debugger(pid);
         if (ptrace(PTRACE_SYSCALL, pid, NULL, NULL) == -1) {
             perror("ptrace syscall");
             break;
@@ -60,6 +62,8 @@ void trace_process(pid_t pid)
 
     printf("Detached from process %d\n", pid);
     ptrace(PTRACE_DETACH, pid, NULL, NULL);
+
+
 }
 
 int fork_and_trace(pid_t pid)
@@ -77,7 +81,7 @@ int fork_and_trace(pid_t pid)
     }
 
     printf("Attached to process %d\n", pid);
-
+    run_debugger(pid);
     while (WIFSTOPPED(status)) {
         if (ptrace(PTRACE_SYSCALL, pid, NULL, NULL) == -1) 
 		{
@@ -95,32 +99,36 @@ int fork_and_trace(pid_t pid)
     ptrace(PTRACE_DETACH, pid, NULL, NULL);
 }
 
-void setup_seccomp() 
-{
-    prctl(PR_SET_SECCOMP, SECCOMP_MODE_STRICT);
+
+void setup_seccomp() {
+    struct sock_filter filter[] = {
+        BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+    };
+
+    struct sock_fprog prog = {
+        .len = (unsigned short)(sizeof(filter)/sizeof(filter[0])),
+        .filter = filter,
+    };
+
+    if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog)) {
+        perror("prctl");
+        exit(1);
+    }
 }
-
-
 int attach_and_trace(pid_t pid) 
 {
     pid_t child_pid = fork();
 
     if (child_pid == -1) 
-	{
+    {
         perror("fork");
         return -1;
     }
     if (child_pid == 0) 
-	{
-		/* cap_t caps = cap_init();
-		cap_set_flag(caps, CAP_EFFECTIVE, 1, (cap_value_t[]){CAP_SYS_ADMIN});
-		cap_set_flag(caps, CAP_PERMITTED, 1, (cap_value_t[]){CAP_SYS_ADMIN});
-		cap_set_flag(caps, CAP_INHERITABLE, 1, (cap_value_t[]){CAP_SYS_ADMIN});
-		cap_set_proc(caps);
-		cap_free(caps); */
+    {
         prctl(PR_SET_PTRACER, getppid(), 0, 0, 0);
         if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) == -1) 
-		{
+        {
             perror("ptrace");
             return -1;
         }
@@ -130,20 +138,27 @@ int attach_and_trace(pid_t pid)
         perror("execv");
         return -1;
     } 
-	else 
-	{
+    else 
+    {
         int status;
         waitpid(child_pid, &status, 0);
+
+        if(WIFSTOPPED(status)) 
+        {
+            printf("Process is already stopped\n");
+            return 0;
+        }
+
         printf("Attached to process %d\n", child_pid);
         while (WIFSTOPPED(status)) 
-		{
+        {
             if (ptrace(PTRACE_SYSCALL, child_pid, NULL, NULL) == -1) 
-			{
+            {
                 perror("ptrace syscall");
                 break;
             }
             if (waitpid(child_pid, &status, 0) == -1) 
-			{
+            {
                 perror("waitpid");
                 break;
             }
