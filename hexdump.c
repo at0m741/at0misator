@@ -19,11 +19,11 @@ void    printHex(unsigned char *data, size_t size)
 
     while (i < size)
     {
-        printf("0x%016X ", (unsigned int)i);
+        printf("0x%016x ", (unsigned int)i);
         size_t j = 0;
         while (j < 16 && i + j < size)
         {
-            printf ("%02X ", bytes[i + j]);
+            printf ("%02x ", bytes[i + j]);
             j++;
         }
         while (j < 16)

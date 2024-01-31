@@ -42,6 +42,8 @@
 #include <sys/prctl.h>
 #include <sys/capability.h>
 #include <stddef.h>
+void trace_symbols(pid_t child);
+
 
 //# include <sys/capability.h>
 

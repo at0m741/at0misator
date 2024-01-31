@@ -23,10 +23,8 @@ int run_debugger(pid_t child_pid)
 			return 0;
 		} else if (!(strncmp(command, "re", 2))) 
 		{
-			(void) signal(SIGTSTP, sigtstp_handler);
-			int pid;
-			int regs;
-			debug(); 
+			/* (void) signal(SIGTSTP, sigtstp_handler); */
+			debug(child_pid); 
 		} 
 		else if (!strncmp(command, "cs", 2)) 
 		{
@@ -55,37 +53,26 @@ int run_debugger(pid_t child_pid)
 			wait(&wait_status);
 			int retval = ptrace(PTRACE_PEEKUSER, child_pid, sizeof(long)*RAX);
 			printf("syscall(%d) = %d\n", syscall, retval);
+			trace_symbols(child_pid);
 		} 
 		else if (!(strncmp(command, "k", 1))) 
 		{
 			kill(child_pid, SIGSTOP);
 			printf("Process killed\n");
 		} 
-		else if  (!(strncmp(command, "hx", 1))) 
+		else if (!strncmp(command, "hx", 2)) 
 		{
-			if (ptrace(PTRACE_SYSCALL, child_pid, 0, 0) < 0) 
-				perror("ptrace");
-			char arg[200];
-			if (sscanf(command + 3, "%19s", arg) != 1) 
+			unsigned long addr;
+			sscanf(command + 2, "%lx", &addr);
+
+			unsigned char buffer[160];
+			for (int i = 0; i < 10; i++) 
 			{
-				printf("Error: Address missing for hx command.\n");
-				continue; 
+				long word = ptrace(PTRACE_PEEKDATA, child_pid, addr + i * 8, 0);
+				memcpy(buffer + i * 8, &word, 8);
 			}
-			unsigned long long int addr = strtoull(arg, NULL, 0);
-			long ret = ptrace(PTRACE_PEEKDATA, child_pid, addr, 0);
-			/* if (errno == ERANGE) 
-			{
-				perror("strtoull");
-				continue;
-			}
-			if (ret == -1 && errno != 0) 
-			{
-				perror("ptrace(PTRACE_PEEKDATA)");
-				printf("Error: Failed to read from address %llx\n", addr);
-				continue;
-			} */
-			printf("Value at address %llx: %lx\n", addr, ret);
-			printHex((char *)&ret, 150);  
+
+			printHex(buffer, sizeof(buffer));
 		}
 		else if (!(strncmp(command, "bt", 2)))
 		{
