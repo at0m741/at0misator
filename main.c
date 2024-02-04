@@ -59,6 +59,7 @@ int main(int argc, char** argv)
     {
         char* program_name = argv[1];
         char** program_argv = &argv[1];
+        program_argv[argc - 1] = NULL;
         setup_seccomp();
         pid_t child_pid = fork();
         if (child_pid == 0) 

@@ -12,14 +12,14 @@
 
 #include "debug.h"
 
-void    printHex(unsigned char *data, size_t size)
+void    printHex(unsigned char *addr, size_t size)
 {
-    unsigned char *bytes = data;
+    unsigned char *bytes = addr;
     size_t i = 0;
 
     while (i < size)
     {
-        printf("0x%016x ", (unsigned int)i);
+        printf("0x%016llx ", (unsigned long long)i + (unsigned long long)addr);
         size_t j = 0;
         while (j < 16 && i + j < size)
         {
@@ -48,4 +48,5 @@ void    printHex(unsigned char *data, size_t size)
         printf("\n");
         i += 16;
     }
+    printf("done\n");
 }

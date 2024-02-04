@@ -33,13 +33,13 @@ void debug(pid_t child)
     printf("r14 = 0x%llx\n", regs.r14 );
     printf("r15 = 0x%llx\n", regs.r15 );
 	printf("rip = 0x%llx\n", regs.rip );
-	printf("eflags = 0x%llx\n", regs.eflags );
 	printf("cs = 0x%llx\n", regs.cs );
 	printf("ss = 0x%llx\n", regs.ss );
 	printf("ds = 0x%llx\n", regs.ds );
 	printf("es = 0x%llx\n", regs.es );
 	printf("fs = 0x%llx\n", regs.fs );
 	printf("gs = 0x%llx\n", regs.gs );
+	printf("eflags = 0x%llx\n", regs.eflags );
 }
 
 bool is_symbol(char symbol) 
@@ -50,25 +50,29 @@ bool is_symbol(char symbol)
 		return false;
 }
 
-void print_backtrace(pid_t child_pid) {
-    struct user_regs_struct regs;
+void print_backtrace(pid_t child_pid) 
+{
+    struct user_regs_struct regs = {0}; 
+    void *trace[MAX_STACK_FRAMES]; int trace_size = 0;
+    trace_size = backtrace(trace, MAX_STACK_FRAMES);
     if (ptrace(PTRACE_GETREGS, child_pid, NULL, &regs) < 0) {
         perror("ptrace(PTRACE_GETREGS)");
         return;
     }
-
+    char **symbols = backtrace_symbols(trace, trace_size);
     printf("Child process stopped at IP = 0x%llx\n", regs.rip);
 
-    // Print the stack trace.
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < trace_size; i++) {
         long stack_data = ptrace(PTRACE_PEEKDATA, child_pid, regs.rsp + i * 8, NULL);
         if (stack_data == -1 && errno != 0) {
             perror("ptrace(PTRACE_PEEKDATA)");
             break;
         }
-        printf("Stack[%02d] = 0x%lx\n", i, stack_data);
+        printf("Stack[%02d] = 0x%lx    sym = %s\n", i, stack_data, symbols[i]);
     }
+    free(symbols);
 }
+
 
 void trace_memory(pid_t pid, unsigned long address, int length) 
 {
@@ -86,8 +90,6 @@ void trace_memory(pid_t pid, unsigned long address, int length)
     printf("Memory dump at address 0x%lx:\n", address);
     printHex(data, length);
     free(data);
-
-    // Print the current memory used by the child process.
     char statm_path[256];
     snprintf(statm_path, sizeof(statm_path), "/proc/%d/statm", pid);
     FILE *statm_file = fopen(statm_path, "r");
@@ -109,55 +111,9 @@ void trace_memory(pid_t pid, unsigned long address, int length)
 void progname(pid_t pid)
 {
     char path[1024];
-    char *name;
+    char name[1024] = {0};
     sprintf(path, "/proc/%d/exe", pid);
-    name = malloc(1024);
     readlink(path, name, 1024);
     printf("traced program name: %s\n", name);
-    free(name);
 }
-
-#include <elf.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-
-void trace_symbols(pid_t child) {
-    char path[1024];
-    sprintf(path, "/proc/%d/exe", child);
-
-    int fd = open(path, O_RDONLY);
-    if (fd == -1) {
-        perror("open");
-        return;
-    }
-
-    Elf64_Ehdr ehdr;
-    if (read(fd, &ehdr, sizeof(ehdr)) != sizeof(ehdr)) {
-        perror("read");
-        close(fd);
-        return;
-    }
-
-    printf("ELF magic: %02x %02x %02x %02x\n", ehdr.e_ident[0], ehdr.e_ident[1], ehdr.e_ident[2], ehdr.e_ident[3]);
-    printf("ELF class: %s\n", ehdr.e_ident[EI_CLASS] == ELFCLASS32 ? "32-bit" : "64-bit");
-    printf("ELF data: %s\n", ehdr.e_ident[EI_DATA] == ELFDATA2LSB ? "little-endian" : "big-endian");
-    printf("ELF version: %d\n", ehdr.e_ident[EI_VERSION]);
-    printf("ELF OS/ABI: %d\n", ehdr.e_ident[EI_OSABI]);
-    printf("ELF ABI version: %d\n", ehdr.e_ident[EI_ABIVERSION]);
-    printf("ELF type: %d\n", ehdr.e_type);
-    printf("ELF machine: %d\n", ehdr.e_machine);
-    printf("ELF version: %d\n", ehdr.e_version);
-    printf("ELF entry point: 0x%llx\n", (unsigned long long)ehdr.e_entry);
-    printf("ELF program header offset: 0x%llx\n", (unsigned long long)ehdr.e_phoff);
-    printf("ELF section header offset: 0x%llx\n", (unsigned long long)ehdr.e_shoff);
-    printf("ELF flags: 0x%x\n", ehdr.e_flags);
-    printf("ELF header size: %d\n", ehdr.e_ehsize);
-    printf("ELF program header entry size: %d\n", ehdr.e_phentsize);
-    printf("ELF program header entry count: %d\n", ehdr.e_phnum);
-    printf("ELF section header entry size: %d\n", ehdr.e_shentsize);
-    printf("ELF section header entry count: %d\n", ehdr.e_shnum);
-    printf("ELF section header string table index: %d\n", ehdr.e_shstrndx);
-
-    close(fd);
-}
+ 
